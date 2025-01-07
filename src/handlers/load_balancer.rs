@@ -1,6 +1,9 @@
 use std::{
     convert::Infallible,
+    future::Future,
+    pin::Pin,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use axum::{
@@ -16,8 +19,8 @@ pub async fn load_balancer(
     State(state): State<Arc<Mutex<RoundRobin>>>,
     request: Request<Body>,
 ) -> Result<Response<Body>, Infallible> {
-    let retry_count = 3;
-    let attempts = 0;
+    // let retry_count = 3;
+    // let attempts = 0;
 
     let max_size = 1024 * 1024;
 
@@ -27,58 +30,88 @@ pub async fn load_balancer(
         .await
         .unwrap_or_default();
 
-    while attempts < retry_count {
-        let forwarded_request =
-            get_forward_request(&state, method.clone(), body_bytes.clone()).await;
+    let forwarded_request = retry_with_backoff(3, || {
+        Box::pin(get_forward_request(
+            state.clone(),
+            method.clone(),
+            body_bytes.clone(),
+        ))
+    })
+    .await;
 
-        if let None = forwarded_request {
+    match forwarded_request.unwrap().send().await {
+        Ok(response) => {
+            let status = response.status();
+            let body_bytes = response.bytes().await.unwrap_or_default();
+            let forwarded_response = Response::builder()
+                .status(status)
+                .header("Content-Type", "application/json")
+                .body(Body::from(body_bytes))
+                .unwrap();
+            return Ok(forwarded_response);
+        }
+        Err(_) => {
             return Ok(Response::builder()
                 .status(StatusCode::SERVICE_UNAVAILABLE)
                 .header("Content-Type", "application/json")
                 .body(Body::from("No available RPC URLs"))
                 .unwrap());
         }
-        match forwarded_request.unwrap().send().await {
-            Ok(response) => {
-                let status = response.status();
-                let body_bytes = response.bytes().await.unwrap_or_default();
-                let forwarded_response = Response::builder()
-                    .status(status)
-                    .header("Content-Type", "application/json")
-                    .body(Body::from(body_bytes))
-                    .unwrap();
-                return Ok(forwarded_response);
-            }
-            Err(_) => {
-                // here we have to write the retry logic...
-                let url;
-                {
-                    let round_robin = state.lock().unwrap();
-                    url = round_robin.retry_connection();
-                }
-
-                if let None = url {
-                    return Ok(Response::builder()
-                        .status(StatusCode::BAD_GATEWAY)
-                        .header("Content-Type", "application/json")
-                        .body(Body::from("Bad Gateway"))
-                        .unwrap());
-                }
-            }
-        }
     }
 
+    // while attempts < retry_count {
+    //     let forwarded_request =
+    //         get_forward_request(&state, method.clone(), body_bytes.clone()).await;
+
+    //     if let None = forwarded_request {
+    //         return Ok(Response::builder()
+    //             .status(StatusCode::SERVICE_UNAVAILABLE)
+    //             .header("Content-Type", "application/json")
+    //             .body(Body::from("No available RPC URLs"))
+    //             .unwrap());
+    //     }
+    //     match forwarded_request.unwrap().send().await {
+    //         Ok(response) => {
+    //             let status = response.status();
+    //             let body_bytes = response.bytes().await.unwrap_or_default();
+    //             let forwarded_response = Response::builder()
+    //                 .status(status)
+    //                 .header("Content-Type", "application/json")
+    //                 .body(Body::from(body_bytes))
+    //                 .unwrap();
+    //             return Ok(forwarded_response);
+    //         }
+    //         Err(_) => {
+    //             // here we have to write the retry logic...
+    //             let url;
+    //             {
+    //                 let round_robin = state.lock().unwrap();
+    //                 url = round_robin.retry_connection();
+    //             }
+
+    //             if let None = url {
+    //                 return Ok(Response::builder()
+    //                     .status(StatusCode::BAD_GATEWAY)
+    //                     .header("Content-Type", "application/json")
+    //                     .body(Body::from("Bad Gateway"))
+    //                     .unwrap());
+    //             }
+    //         }
+    //     }
+    // }
+
     // If all retries fail, return a Bad Gateway response
-    Ok(Response::builder()
-        .status(StatusCode::BAD_GATEWAY)
-        .header("Content-Type", "application/json")
-        .body(Body::from("Bad Gateway"))
-        .unwrap())
+
+    // Ok(Response::builder()
+    //     .status(StatusCode::BAD_GATEWAY)
+    //     .header("Content-Type", "application/json")
+    //     .body(Body::from("Bad Gateway"))
+    //     .unwrap())
 }
 
 async fn get_forward_request(
-    state: &Arc<Mutex<RoundRobin>>,
-    request: Method,
+    state: Arc<Mutex<RoundRobin>>,
+    method: Method,
     body_bytes: Bytes,
 ) -> Option<RequestBuilder> {
     let uri;
@@ -93,7 +126,7 @@ async fn get_forward_request(
 
         let client = reqwest::Client::new();
 
-        let mut forwarded_request = client.request(request, &uri);
+        let mut forwarded_request = client.request(method, &uri);
 
         forwarded_request = forwarded_request.header("Content-Type", "application/json");
         forwarded_request = forwarded_request.body(body_bytes);
@@ -102,4 +135,25 @@ async fn get_forward_request(
     } else {
         None
     }
+}
+async fn retry_with_backoff<F>(max_retries: u32, mut task: F) -> Option<RequestBuilder>
+where
+    F: FnMut() -> Pin<Box<dyn Future<Output = Option<RequestBuilder>> + Send>>, // Closure returns a Future
+{
+    let mut retries = 0;
+    let mut delay = Duration::from_secs(1);
+
+    while retries < max_retries {
+        let result = task().await; // Await the async closure
+
+        if let Some(res) = result {
+            return Some(res);
+        }
+
+        retries += 1;
+        tokio::time::sleep(delay).await;
+        delay *= 2; // Exponential backoff
+    }
+
+    return None;
 }
