@@ -27,8 +27,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/{*path}", any(load_balancer))
-        .layer(Extension(round_robin));
-    // .with_state(round_robin);
+        .with_state(round_robin);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, app).await.unwrap();

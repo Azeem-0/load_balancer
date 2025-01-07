@@ -3,9 +3,11 @@ use std::sync::{
     Arc,
 };
 
+use serde::Deserialize;
+
 use crate::models::rpc_model::RpcServer;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct RoundRobin {
     pub urls: Arc<Vec<RpcServer>>,
     pub index: Arc<AtomicUsize>,

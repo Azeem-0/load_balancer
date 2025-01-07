@@ -1,5 +1,6 @@
 use std::{
     convert::Infallible,
+    fs,
     sync::{Arc, Mutex},
 };
 
@@ -11,15 +12,18 @@ use axum::{
 };
 use reqwest::StatusCode;
 
-use crate::algorithms::round_robin::RoundRobin;
+use crate::{algorithms::round_robin::RoundRobin, models::rpc_model::Config};
 
 pub async fn load_balancer(
+    State(state): State<Arc<Mutex<RoundRobin>>>,
     request: Request<Body>,
-    Extension(state): Extension<Arc<Mutex<RoundRobin>>>, // State(state): State<Arc<Mutex<RoundRobin>>>,
 ) -> Result<Response<Body>, Infallible> {
-    // TODO: add rpc base url + sub url for fetching specific end point.
-    // let uri = format!("{}{}", "state.api.relay", request.uri());
-    let uri = format!("https://sepolia.drpc.org/");
+    let uri;
+
+    {
+        let round_robin = state.lock().unwrap();
+        uri = round_robin.get_next();
+    }
 
     println!("Forwarding request to : {}", &uri);
 
