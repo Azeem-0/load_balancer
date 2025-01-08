@@ -33,12 +33,21 @@ pub async fn load_balancer(
 
     let method = request.method().clone();
 
-    let body_bytes = body::to_bytes(request.into_body(), max_size)
-        .await
-        .unwrap_or_default();
+    let body_bytes = {
+        let body = request.into_body();
+        let body_bytes = body::to_bytes(body, max_size).await;
+        if let Err(_) = body_bytes {
+            return Ok(Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header("Content-Type", "application/json")
+                .body(Body::from("Failed to read request body"))
+                .unwrap());
+        }
+        body_bytes.unwrap_or_default()
+    };
 
     let forwarded_request =
-        retry_with_backoff(3, round_robin.clone(), method.clone(), body_bytes.clone()).await;
+        retry_with_backoff(3, method.clone(), body_bytes.clone(), round_robin).await;
 
     match forwarded_request {
         Some(response) => {
@@ -53,9 +62,9 @@ pub async fn load_balancer(
         }
         None => {
             return Ok(Response::builder()
-                .status(StatusCode::BAD_GATEWAY)
+                .status(StatusCode::SERVICE_UNAVAILABLE)
                 .header("Content-Type", "application/json")
-                .body(Body::from("Bad Gateway"))
+                .body(Body::from("No Avaialble RPC Urls"))
                 .unwrap());
         }
     }
@@ -63,26 +72,23 @@ pub async fn load_balancer(
 
 async fn retry_with_backoff(
     max_retries: u32,
-    state: Arc<Mutex<RoundRobin>>,
     method: Method,
     body_bytes: Bytes,
+    state: Arc<Mutex<RoundRobin>>,
 ) -> Option<ReqwestResponse> {
     let mut retries = 0;
-    let delay = Duration::from_millis(1);
+    let base_delay = Duration::from_millis(100);
 
     while retries < max_retries {
         let result = get_forward_request(state.clone(), method.clone(), body_bytes.clone()).await;
-        println!("Retry number : {}", retries);
 
-        if let Some(result) = result {
-            if let Ok(res) = result.send().await {
-                if res.status() == 200 {
+        if let Some(request) = result {
+            if let Ok(res) = request.send().await {
+                if res.status().is_success() {
                     return Some(res);
                 }
             }
         }
-
-        println!("Retrying with another RPC Url.");
 
         {
             let round_robin = state.lock().unwrap();
@@ -90,10 +96,14 @@ async fn retry_with_backoff(
         }
 
         retries += 1;
-        tokio::time::sleep(delay).await;
+        if retries < max_retries {
+            let current_delay = base_delay * 2_u32.pow(retries);
+            println!("Retrying with another RPC Url in {:?}.", current_delay);
+            tokio::time::sleep(current_delay).await;
+        }
     }
 
-    return None;
+    None
 }
 
 async fn get_forward_request(
@@ -117,13 +127,13 @@ async fn get_forward_request(
 
         forwarded_request = forwarded_request.header("Content-Type", "application/json");
         forwarded_request = forwarded_request.body(body_bytes);
-
         return Some(forwarded_request);
     } else {
         None
     }
 }
 
+// load balancer tests
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -224,6 +234,11 @@ mod tests {
             },
             RpcServer {
                 url: "https://sepolia.drpc.org".to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+            RpcServer {
+                url: "https://endpoints.omniatech.io/v1/eth/sepolia/public".to_string(),
                 request_limit: 1,
                 current_limit: 1,
             },

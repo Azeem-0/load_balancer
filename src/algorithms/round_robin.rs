@@ -26,11 +26,11 @@ impl RoundRobin {
     pub fn get_next(&mut self) -> Option<String> {
         let len = self.urls.len();
         for _ in 0..len {
-            let i = self.index.load(Ordering::Relaxed);
-
-            if self.urls[i].current_limit > 0 {
-                self.urls[i].current_limit -= 1;
-                return Some(self.urls[i].url.clone());
+            let i = self.index.load(Ordering::Relaxed) % self.urls.len();
+            let mut server = self.urls[i].lock().unwrap();
+            if server.current_limit > 0 {
+                server.current_limit -= 1;
+                return Some(server.url.clone());
             }
             self.index.store((i + 1) % len, Ordering::Relaxed);
         }
@@ -39,12 +39,15 @@ impl RoundRobin {
         None
     }
 
-    pub async fn refill_limits(&mut self) {
+    pub async fn refill_limits(&self, interval: Duration) {
         loop {
-            for server in &mut self.urls {
-                server.current_limit = server.request_limit;
+            for server in self.urls.iter() {
+                {
+                    let mut server = server.lock().unwrap();
+                    server.current_limit = server.request_limit;
+                }
             }
-            time::sleep(Duration::from_secs(1)).await;
+            time::sleep(interval).await;
         }
     }
 

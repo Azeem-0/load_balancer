@@ -5,6 +5,7 @@ use std::{
     collections::HashMap,
     fs,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use algorithms::round_robin::{Config, LoadBalancer, RoundRobin};
@@ -18,9 +19,9 @@ pub async fn initialize_load_balancer(config: Config) -> LoadBalancer {
         lb_map.insert(chain_name, round_robin);
     }
 
-    LoadBalancer {
+    Arc::new(LoadBalancer {
         load_balancers: Arc::new(lb_map),
-    }
+    })
 }
 
 #[tokio::main]
@@ -32,17 +33,16 @@ async fn main() {
 
     let lb = initialize_load_balancer(config).await;
 
-    // spawning new threads to refill the current limit of each chain's RPC Url.
-
     for round_robin in lb.load_balancers.values() {
-        let mut rr_clone;
+        let rr_clone;
+
         {
             let rr = round_robin.lock().unwrap();
             rr_clone = rr.clone();
         }
 
         tokio::spawn(async move {
-            rr_clone.refill_limits().await;
+            rr_clone.refill_limits(Duration::from_secs(10)).await;
         });
     }
 
