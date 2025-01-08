@@ -4,7 +4,7 @@
 rpc_urls = [
     { url = "https://sepolia.dfrpc.org/", request_limit = 5, current_limit = 5 },
     { url = "https://sepolia.infdura.io/v3/61a164b7aa39462cb0fc75f5b0ace269", request_limit = 5, current_limit = 5 },
-    { url = "https://eth-sepdolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 5, current_limit = 5 },
     { url = "https://sepolia.infura.io/v3/61a164b7aa39462cb0fc75f5b0ace269", request_limit = 5, current_limit = 5 },
 ]
 

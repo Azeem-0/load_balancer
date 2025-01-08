@@ -12,13 +12,14 @@ use tokio::time;
 
 #[derive(Clone, Debug)]
 pub struct RoundRobin {
-    pub urls: Vec<RpcServer>,
+    pub urls: Arc<Vec<Mutex<RpcServer>>>,
     pub index: Arc<AtomicUsize>,
 }
 impl RoundRobin {
     pub fn new(urls: Vec<RpcServer>) -> Self {
+        let urls = urls.into_iter().map(Mutex::new).collect();
         Self {
-            urls: urls,
+            urls: Arc::new(urls),
             index: Arc::new(AtomicUsize::new(0)),
         }
     }
@@ -111,6 +112,7 @@ mod tests {
         assert_eq!(index, 0);
 
         for (i, server) in round_robin.urls.iter().enumerate() {
+            let server = server.lock().unwrap();
             assert_eq!(server.url, servers[i].url);
             assert_eq!(server.request_limit, servers[i].request_limit);
             assert_eq!(server.current_limit, servers[i].current_limit);

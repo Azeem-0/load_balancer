@@ -12,7 +12,7 @@ use algorithms::round_robin::{Config, LoadBalancer, RoundRobin};
 use axum::{routing::any, Router};
 use handlers::load_balancer::load_balancer;
 
-pub async fn initialize_load_balancer(config: Config) -> LoadBalancer {
+pub async fn initialize_load_balancer(config: Config) -> Arc<LoadBalancer> {
     let mut lb_map = HashMap::new();
     for (chain_name, chain_data) in config.chains {
         let round_robin = Arc::new(Mutex::new(RoundRobin::new(chain_data.rpc_urls)));

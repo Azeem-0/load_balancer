@@ -14,7 +14,7 @@ use reqwest::{Method, RequestBuilder, Response as ReqwestResponse, StatusCode};
 
 pub async fn load_balancer(
     Path(chain): Path<String>,
-    State(state): State<LoadBalancer>,
+    State(state): State<Arc<LoadBalancer>>,
     request: axum::http::Request<Body>,
 ) -> Result<Response<Body>, Infallible> {
     let round_robin = {
@@ -184,7 +184,9 @@ mod tests {
         let request = create_test_request();
 
         let path: Path<String> = Path("sepolia".to_string());
-        let response = load_balancer(path, State(lbs), request).await.unwrap();
+        let response = load_balancer(path, State(Arc::new(lbs)), request)
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
     }
 
@@ -212,7 +214,9 @@ mod tests {
         // TODO: Add assertions for header forwarding once HTTP mocking is implemented
         let path: Path<String> = Path("sepolia".to_string());
 
-        let response = load_balancer(path, State(lbs), request).await.unwrap();
+        let response = load_balancer(path, State(Arc::new(lbs)), request)
+            .await
+            .unwrap();
 
         assert_eq!(response.headers()["Content-Type"], "application/json");
     }
@@ -253,7 +257,9 @@ mod tests {
         };
         let path: Path<String> = Path("sepolia".to_string());
         println!("before resp");
-        let response = load_balancer(path, State(lbs), request).await.unwrap();
+        let response = load_balancer(path, State(Arc::new(lbs)), request)
+            .await
+            .unwrap();
         println!("{}", response.status());
         assert_eq!(response.status(), StatusCode::OK);
     }
@@ -321,20 +327,22 @@ mod tests {
             let round_robin_lb = &lbs.load_balancers;
 
             for round_robin in round_robin_lb.values() {
-                let mut rr_clone;
+                let rr_clone;
                 {
                     let rr = round_robin.lock().unwrap();
                     rr_clone = rr.clone();
                 }
 
                 tokio::spawn(async move {
-                    rr_clone.refill_limits().await;
+                    rr_clone.refill_limits(Duration::from_secs(10)).await;
                 });
             }
         }
 
         let path: Path<String> = Path("sepolia".to_string());
-        let response = load_balancer(path, State(lbs), request).await.unwrap();
+        let response = load_balancer(path, State(Arc::new(lbs)), request)
+            .await
+            .unwrap();
         println!("{}", response.status());
         assert_eq!(response.status(), StatusCode::OK);
 
