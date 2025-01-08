@@ -2,9 +2,9 @@
 
 [chains.sepolia]
 rpc_urls = [
+    { url = "https://rpc.sepolia.org", request_limit = 1, current_limit = 1 },
     { url = "https://sepolia.drpc.org/", request_limit = 1, current_limit = 1 },
     { url = "https://endpoints.omniatech.io/v1/eth/sepolia/public", request_limit = 1, current_limit = 1 },
-    { url = "https://rpc.sepolia.org", request_limit = 1, current_limit = 1 },
 ]
 
 [chains.polygon]

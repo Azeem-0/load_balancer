@@ -53,16 +53,8 @@ pub async fn load_balancer(
     )
     .await;
 
-    if let None = forwarded_request {
-        return Ok(Response::builder()
-            .status(StatusCode::BAD_GATEWAY)
-            .header("Content-Type", "application/json")
-            .body(Body::from("Bad Gateway"))
-            .unwrap());
-    }
-
-    match forwarded_request.unwrap().send().await {
-        Ok(response) => {
+    match forwarded_request {
+        Some(response) => {
             let status = response.status();
             let body_bytes = response.bytes().await.unwrap_or_default();
             let forwarded_response = Response::builder()
@@ -72,11 +64,11 @@ pub async fn load_balancer(
                 .unwrap();
             return Ok(forwarded_response);
         }
-        Err(_) => {
+        None => {
             return Ok(Response::builder()
-                .status(StatusCode::SERVICE_UNAVAILABLE)
+                .status(StatusCode::BAD_GATEWAY)
                 .header("Content-Type", "application/json")
-                .body(Body::from("No available RPC URLs"))
+                .body(Body::from("Bad Gateway"))
                 .unwrap());
         }
     }
@@ -93,6 +85,8 @@ async fn get_forward_request(
         let round_robin = state.lock().unwrap();
         uri = round_robin.get_next();
     }
+
+    println!("{:?}", uri);
 
     if let Some(uri) = uri {
         println!("Forwarding request to : {}", &uri);
@@ -114,31 +108,33 @@ async fn retry_with_backoff<F>(
     max_retries: u32,
     mut task: F,
     state: Arc<Mutex<RoundRobin>>,
-) -> Option<RequestBuilder>
+) -> Option<ReqwestResponse>
 where
     F: FnMut() -> Pin<Box<dyn Future<Output = Option<RequestBuilder>> + Send>>, // Closure returns a Future
 {
     let mut retries = 0;
-    let mut delay = Duration::from_secs(1);
+    let mut delay = Duration::from_millis(100);
 
     while retries < max_retries {
         let result = task().await;
 
-        if let Some(res) = result {
-            return Some(res);
+        if let Some(result) = result {
+            if let Ok(res) = result.send().await {
+                if res.status() == 200 {
+                    return Some(res);
+                }
+            }
         }
+
+        println!("Retrying with another RPC Url.");
 
         retries += 1;
         tokio::time::sleep(delay).await;
-        delay *= 2; // Exponential backoff
+        delay *= 100; // Exponential backoff
 
-        let url;
         {
             let round_robin = state.lock().unwrap();
-            url = round_robin.retry_connection();
-        }
-        if let None = url {
-            return None;
+            round_robin.retry_connection();
         }
     }
 
