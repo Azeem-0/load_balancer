@@ -14,7 +14,7 @@ use handlers::load_balancer::load_balancer;
 pub async fn initialize_load_balancer(config: Config) -> Arc<LoadBalancer> {
     let mut lb_map = HashMap::new();
     for (chain_name, chain_data) in config.chains {
-        let round_robin = RoundRobin::new(chain_data.rpc_urls);
+        let round_robin = Arc::new(Mutex::new(RoundRobin::new(chain_data.rpc_urls)));
         lb_map.insert(chain_name, round_robin);
     }
 
@@ -34,21 +34,18 @@ async fn main() {
     {
         let round_robin_lb = lb.load_balancers.lock().unwrap();
 
-        for rr in round_robin_lb.values() {}
-    }
+        for round_robin in round_robin_lb.values() {
+            let rr_clone;
+            {
+                let rr = round_robin.lock().unwrap();
+                rr_clone = rr.clone();
+            }
 
-    // {
-    //     let load_balancer_clone = Arc::clone(&lb);
-    //     tokio::spawn(async move {
-    //         let load_balancers = load_balancer_clone.lock().unwrap().load_balancers.clone();
-    //         for round_robin in load_balancers.values() {
-    //             let round_robin_clone = Arc::clone(round_robin); // Clone the Arc for each RoundRobin
-    //             tokio::spawn(async move {
-    //                 round_robin_clone.lock().unwrap().refill_limits().await;
-    //             });
-    //         }
-    //     });
-    // }
+            tokio::spawn(async move {
+                rr_clone.refill_limits().await;
+            });
+        }
+    }
 
     let app = Router::new()
         .route("/{*path}", any(load_balancer))

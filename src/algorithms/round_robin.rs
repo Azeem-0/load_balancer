@@ -65,7 +65,7 @@ impl RoundRobin {
 
 #[derive(Debug)]
 pub struct LoadBalancer {
-    pub load_balancers: Arc<Mutex<HashMap<String, RoundRobin>>>,
+    pub load_balancers: Arc<Mutex<HashMap<String, Arc<Mutex<RoundRobin>>>>>,
 }
 
 #[derive(Deserialize, Debug)]
