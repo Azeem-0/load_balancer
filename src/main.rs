@@ -5,6 +5,7 @@ use std::{
     collections::HashMap,
     fs,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use algorithms::round_robin::{Config, LoadBalancer, RoundRobin};
@@ -19,7 +20,7 @@ pub async fn initialize_load_balancer(config: Config) -> Arc<LoadBalancer> {
     }
 
     Arc::new(LoadBalancer {
-        load_balancers: Arc::new(Mutex::new(lb_map)),
+        load_balancers: Arc::new(lb_map),
     })
 }
 
@@ -31,20 +32,17 @@ async fn main() {
 
     let lb = initialize_load_balancer(config).await;
 
-    {
-        let round_robin_lb = lb.load_balancers.lock().unwrap();
+    for round_robin in lb.load_balancers.values() {
+        let rr_clone;
 
-        for round_robin in round_robin_lb.values() {
-            let rr_clone;
-            {
-                let rr = round_robin.lock().unwrap();
-                rr_clone = rr.clone();
-            }
-
-            tokio::spawn(async move {
-                rr_clone.refill_limits().await;
-            });
+        {
+            let rr = round_robin.lock().unwrap();
+            rr_clone = rr.clone();
         }
+
+        tokio::spawn(async move {
+            rr_clone.refill_limits(Duration::from_secs(10)).await;
+        });
     }
 
     let app = Router::new()

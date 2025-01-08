@@ -29,10 +29,6 @@ impl RoundRobin {
         for _ in 0..len {
             let i = self.index.load(Ordering::Relaxed) % self.urls.len();
             let mut server = self.urls[i].lock().unwrap();
-            println!(
-                "inside get next printing server currentname {} and curr_limit {}",
-                server.url, server.current_limit
-            );
             if server.current_limit > 0 {
                 server.current_limit -= 1;
                 return Some(server.url.clone());
@@ -44,31 +40,28 @@ impl RoundRobin {
         None
     }
 
-    pub async fn refill_limits(&self) {
+    pub async fn refill_limits(&self, interval: Duration) {
         loop {
-            println!("{:?}", self.urls);
             for server in self.urls.iter() {
                 {
                     let mut server = server.lock().unwrap();
                     server.current_limit = server.request_limit;
                 }
             }
-            time::sleep(Duration::from_secs(1)).await;
+            time::sleep(interval).await;
         }
     }
 
-    pub fn retry_connection(&self) -> Option<String> {
+    pub fn retry_connection(&self) {
         let len = self.urls.len();
         let i = self.index.load(Ordering::Relaxed);
         self.index.store((i + 1) % len, Ordering::Relaxed);
-
-        return self.get_next();
     }
 }
 
 #[derive(Debug)]
 pub struct LoadBalancer {
-    pub load_balancers: Arc<Mutex<HashMap<String, Arc<Mutex<RoundRobin>>>>>,
+    pub load_balancers: Arc<HashMap<String, Arc<Mutex<RoundRobin>>>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -109,7 +102,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_new_round_robin() {
         let servers = create_test_servers();
         let round_robin = RoundRobin::new(servers.clone());
@@ -128,7 +120,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_get_next() {
         let servers = create_test_servers();
         let round_robin = RoundRobin::new(servers);
