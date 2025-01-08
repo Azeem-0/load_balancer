@@ -30,14 +30,26 @@ pub async fn load_balancer(
         .await
         .unwrap_or_default();
 
-    let forwarded_request = retry_with_backoff(3, || {
-        Box::pin(get_forward_request(
-            state.clone(),
-            method.clone(),
-            body_bytes.clone(),
-        ))
-    })
+    let forwarded_request = retry_with_backoff(
+        3,
+        || {
+            Box::pin(get_forward_request(
+                state.clone(),
+                method.clone(),
+                body_bytes.clone(),
+            ))
+        },
+        state.clone(),
+    )
     .await;
+
+    if let None = forwarded_request {
+        return Ok(Response::builder()
+            .status(StatusCode::BAD_GATEWAY)
+            .header("Content-Type", "application/json")
+            .body(Body::from("Bad Gateway"))
+            .unwrap());
+    }
 
     match forwarded_request.unwrap().send().await {
         Ok(response) => {
@@ -101,12 +113,6 @@ pub async fn load_balancer(
     // }
 
     // If all retries fail, return a Bad Gateway response
-
-    // Ok(Response::builder()
-    //     .status(StatusCode::BAD_GATEWAY)
-    //     .header("Content-Type", "application/json")
-    //     .body(Body::from("Bad Gateway"))
-    //     .unwrap())
 }
 
 async fn get_forward_request(
@@ -136,7 +142,12 @@ async fn get_forward_request(
         None
     }
 }
-async fn retry_with_backoff<F>(max_retries: u32, mut task: F) -> Option<RequestBuilder>
+
+async fn retry_with_backoff<F>(
+    max_retries: u32,
+    mut task: F,
+    state: Arc<Mutex<RoundRobin>>,
+) -> Option<RequestBuilder>
 where
     F: FnMut() -> Pin<Box<dyn Future<Output = Option<RequestBuilder>> + Send>>, // Closure returns a Future
 {
@@ -144,7 +155,7 @@ where
     let mut delay = Duration::from_secs(1);
 
     while retries < max_retries {
-        let result = task().await; // Await the async closure
+        let result = task().await;
 
         if let Some(res) = result {
             return Some(res);
@@ -153,6 +164,15 @@ where
         retries += 1;
         tokio::time::sleep(delay).await;
         delay *= 2; // Exponential backoff
+
+        let url;
+        {
+            let round_robin = state.lock().unwrap();
+            url = round_robin.retry_connection();
+        }
+        if let None = url {
+            return None;
+        }
     }
 
     return None;
