@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use crate::algorithms::round_robin::{LoadBalancer, RoundRobin};
+use crate::algorithms::round_robin::{self, LoadBalancer, RoundRobin};
 use axum::{
     body::{self, Body, Bytes},
     extract::{Path, State},
@@ -31,6 +31,8 @@ pub async fn load_balancer(
         }
         rr.unwrap().clone()
     };
+
+    println!("check - 1 {:?}", round_robin);
 
     let max_size = 1024 * 1024;
 
@@ -86,7 +88,12 @@ async fn get_forward_request(
         uri = round_robin.get_next();
     }
 
+    println!(
+        "before attempt trying to print Some(uri) returned from round_robin = {:#?} ",
+        Some(uri.clone())
+    );
     if let Some(uri) = uri {
+        println!("forwad attempt");
         println!("Forwarding request to : {}", &uri);
 
         let client = reqwest::Client::new();
@@ -128,7 +135,7 @@ where
 
         retries += 1;
         tokio::time::sleep(delay).await;
-        delay *= 100; // Exponential backoff
+        delay *= 10; // Exponential backoff
 
         {
             let round_robin = state.lock().unwrap();
@@ -137,4 +144,133 @@ where
     }
 
     return None;
+}
+
+// load balancer tests
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::algorithms::round_robin::{RoundRobin, RpcServer};
+    use axum::http::Request;
+
+    use tokio::test;
+    fn create_test_servers() -> Vec<RpcServer> {
+        vec![
+            RpcServer {
+                url: "https://sepolia.drpc.org/".to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+            RpcServer {
+                url: "https://polygon-rpc.com".to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+        ]
+    }
+
+    // Helper function to create a test request
+    fn create_test_request() -> Request<Body> {
+        Request::builder()
+            .method("POST")
+            .uri("https://sepolia.drpc.org/")
+            .header("Content-Type", "application/json")
+            .body(Body::from(
+                r#"{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}"#,
+            ))
+            .unwrap()
+    }
+
+    #[test]
+    #[ignore]
+    async fn test_successful_request_forwarding() {
+        let servers = create_test_servers();
+        let mock_round_robin = Arc::new(Mutex::new(RoundRobin::new(servers)));
+        let mut chains: HashMap<String, Arc<Mutex<RoundRobin>>> = HashMap::new();
+        chains.insert("sepolia".to_string(), mock_round_robin);
+        let fin_chains = Arc::new(Mutex::new(chains));
+        let lbs = LoadBalancer {
+            load_balancers: fin_chains,
+        };
+
+        let request = create_test_request();
+
+        let path: Path<String> = Path("sepolia".to_string());
+        let response = load_balancer(path, State(Arc::new(lbs)), request)
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[test]
+    #[ignore]
+    async fn test_request_headers_forwarded() {
+        let servers = create_test_servers();
+        let mock_round_robin = Arc::new(Mutex::new(RoundRobin::new(servers)));
+        let mut chains: HashMap<String, Arc<Mutex<RoundRobin>>> = HashMap::new();
+        chains.insert("sepolia".to_string(), mock_round_robin);
+        let fin_chains = Arc::new(Mutex::new(chains));
+        let lbs = LoadBalancer {
+            load_balancers: fin_chains,
+        };
+
+        let request = Request::builder()
+            .method("POST")
+            .uri("http://test.com")
+            .header("X-Custom-Header", "test-value")
+            .header("Content-Type", "application/json")
+            .body(Body::from(
+                r#"{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}"#,
+            ))
+            .unwrap();
+
+        // TODO: Add assertions for header forwarding once HTTP mocking is implemented
+        let path: Path<String> = Path("sepolia".to_string());
+
+        let response = load_balancer(path, State(Arc::new(lbs)), request)
+            .await
+            .unwrap();
+
+        assert_eq!(response.headers()["Content-Type"], "application/json");
+    }
+
+    #[test]
+    async fn test_retry_on_failure() {
+        println!("entered retry testing");
+        let request = create_test_request();
+        let servers = vec![
+            RpcServer {
+                url: "https://sepolia.d.org".to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+            RpcServer {
+                url: "https://sepolia.drpc.org".to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+            // RpcServer {
+            //     url: "https://endpoints.omniatech.io/v1/eth/sepolia/public".to_string(),
+            //     request_limit: 1,
+            //     current_limit: 1,
+            // },
+        ];
+
+        let mock_round_robin = Arc::new(Mutex::new(RoundRobin::new(servers)));
+        let mut chains: HashMap<String, Arc<Mutex<RoundRobin>>> = HashMap::new();
+        chains.insert("sepolia".to_string(), mock_round_robin);
+        let fin_chains = Arc::new(Mutex::new(chains));
+        let lbs = LoadBalancer {
+            load_balancers: fin_chains,
+        };
+        let path: Path<String> = Path("sepolia".to_string());
+        println!("before resp");
+        let response = load_balancer(path, State(Arc::new(lbs)), request)
+            .await
+            .unwrap();
+        println!("{}", response.status());
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }
