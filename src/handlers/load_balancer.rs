@@ -86,8 +86,6 @@ async fn get_forward_request(
         uri = round_robin.get_next();
     }
 
-    println!("{:?}", uri);
-
     if let Some(uri) = uri {
         println!("Forwarding request to : {}", &uri);
 

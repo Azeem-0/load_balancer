@@ -26,8 +26,6 @@ impl RoundRobin {
 
     pub fn get_next(&self) -> Option<String> {
         let len = self.urls.len();
-        println!("{}", len);
-
         for _ in 0..len {
             let i = self.index.load(Ordering::Relaxed) % self.urls.len();
             let mut server = self.urls[i].lock().unwrap();
