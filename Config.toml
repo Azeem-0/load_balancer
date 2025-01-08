@@ -1,15 +1,31 @@
-# Config.toml
+[chains]
 
-[settings]
-retry_count = 3
-timeout = 1000
-log_level = "info"
+[chains.sepolia]
+rpc_urls = [
+    { url = "https://sepolia.drfpc.org/", request_limit = 1, current_limit = 1 },
+    { url = "https://another-sepolia-rpc.com", request_limit = 2, current_limit = 0 }
+]
 
-[rpc_urls]
-servers = [
-    { url = "https://sepolia.drpc.org/", request_limit=1,current_limit=1 },
-    { url = "https://polygon-rpc.com", request_limit=1,current_limit=1 },
-    { url = "https://bsc-dataseed1.binance.org", request_limit=1,current_limit=1 },
-    { url = "https://avalanche.public-rpc.com",request_limit=1,current_limit=1 },
-    { url = "https://rpc.ftm.tools", request_limit=1 ,current_limit=1}
+[chains.polygon]
+rpc_urls = [
+    { url = "https://polygon-rpc.com", request_limit = 1, current_limit = 1 },
+    { url = "https://another-polygon-rpc.com", request_limit = 3, current_limit = 0 }
+]
+
+[chains.bsc]
+rpc_urls = [
+    { url = "https://bsc-dataseed1.binance.org", request_limit = 1, current_limit = 1 },
+    { url = "https://another-bsc-rpc.com", request_limit = 2, current_limit = 0 }
+]
+
+[chains.avalanche]
+rpc_urls = [
+    { url = "https://avalanche.public-rpc.com", request_limit = 1, current_limit = 1 },
+    { url = "https://another-avalanche-rpc.com", request_limit = 2, current_limit = 0 }
+]
+
+[chains.fantom]
+rpc_urls = [
+    { url = "https://rpc.ftm.tools", request_limit = 1, current_limit = 1 },
+    { url = "https://another-fantom-rpc.com", request_limit = 2, current_limit = 0 }
 ]

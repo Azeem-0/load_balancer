@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
@@ -9,7 +10,7 @@ use std::{
 use serde::Deserialize;
 use tokio::time;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RoundRobin {
     pub urls: Arc<Vec<Mutex<RpcServer>>>,
     pub index: Arc<AtomicUsize>,
@@ -44,8 +45,10 @@ impl RoundRobin {
     pub async fn refill_limits(&self) {
         loop {
             for server in self.urls.iter() {
-                let mut server = server.lock().unwrap();
-                server.current_limit = server.request_limit;
+                {
+                    let mut server = server.lock().unwrap();
+                    server.current_limit = server.request_limit;
+                }
             }
             time::sleep(Duration::from_secs(1)).await;
         }
@@ -60,22 +63,19 @@ impl RoundRobin {
     }
 }
 
+#[derive(Debug)]
+pub struct LoadBalancer {
+    pub load_balancers: Arc<Mutex<HashMap<String, RoundRobin>>>,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Config {
-    pub settings: Settings,
-    pub rpc_urls: RpcUrls,
+    pub chains: HashMap<String, Chains>,
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Settings {
-    pub retry_count: u32,
-    pub timeout: u32,
-    pub log_level: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct RpcUrls {
-    pub servers: Vec<RpcServer>,
+pub struct Chains {
+    pub rpc_urls: Vec<RpcServer>,
 }
 
 #[derive(Deserialize, Debug)]

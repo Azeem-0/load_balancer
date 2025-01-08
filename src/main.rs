@@ -2,13 +2,26 @@ mod algorithms;
 mod handlers;
 
 use std::{
+    collections::HashMap,
     fs,
     sync::{Arc, Mutex},
 };
 
-use algorithms::round_robin::{Config, RoundRobin};
+use algorithms::round_robin::{Config, LoadBalancer, RoundRobin};
 use axum::{routing::any, Router};
 use handlers::load_balancer::load_balancer;
+
+pub async fn initialize_load_balancer(config: Config) -> Arc<LoadBalancer> {
+    let mut lb_map = HashMap::new();
+    for (chain_name, chain_data) in config.chains {
+        let round_robin = RoundRobin::new(chain_data.rpc_urls);
+        lb_map.insert(chain_name, round_robin);
+    }
+
+    Arc::new(LoadBalancer {
+        load_balancers: Arc::new(Mutex::new(lb_map)),
+    })
+}
 
 #[tokio::main]
 async fn main() {
@@ -16,25 +29,30 @@ async fn main() {
 
     let config: Config = toml::from_str(&config_content).expect("Failed to parse Config.toml");
 
-    let rpc_servers = config.rpc_urls.servers;
-
-    let round_robin = Arc::new(Mutex::new(RoundRobin::new(rpc_servers)));
-
-    let round_robin_clone;
+    let lb = initialize_load_balancer(config).await;
 
     {
-        let round_robin = round_robin.lock().unwrap();
+        let round_robin_lb = lb.load_balancers.lock().unwrap();
 
-        round_robin_clone = round_robin.clone();
+        for rr in round_robin_lb.values() {}
     }
 
-    tokio::spawn(async move {
-        round_robin_clone.refill_limits().await;
-    });
+    // {
+    //     let load_balancer_clone = Arc::clone(&lb);
+    //     tokio::spawn(async move {
+    //         let load_balancers = load_balancer_clone.lock().unwrap().load_balancers.clone();
+    //         for round_robin in load_balancers.values() {
+    //             let round_robin_clone = Arc::clone(round_robin); // Clone the Arc for each RoundRobin
+    //             tokio::spawn(async move {
+    //                 round_robin_clone.lock().unwrap().refill_limits().await;
+    //             });
+    //         }
+    //     });
+    // }
 
     let app = Router::new()
         .route("/{*path}", any(load_balancer))
-        .with_state(round_robin);
+        .with_state(lb);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
     axum::serve(listener, app).await.unwrap();
