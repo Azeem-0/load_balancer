@@ -9,19 +9,40 @@ rpc_urls = [
     { url = "https://eth-sepolia.public.blastapi.io", request_limit = 5, current_limit = 5 },
     { url = "https://rpc-sepolia.rockx.com", request_limit = 5, current_limit = 5 },
     { url = "https://rpc2.sepolia.org", request_limit = 5, current_limit = 5 },
-    { url = "https://eth-sepolia-public.unifra.io", request_limit = 5, current_limit = 5 },    
-    { url = "https://eth-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 5, current_limit = 5 }, 
-    { url = "https://eth-sepolia.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc", request_limit = 5, current_limit = 5 }, 
+    { url = "https://eth-sepolia-public.unifra.io", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-sepolia.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-sepolia.g.alchemy.com/v2/mRRENj5uQ1jqgfIIrtFZFzqUWQtU1lvH", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-sepolia.g.alchemy.com/v2/fjZ8CPTHtjIN989lInvYqljpGNqJTspg", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-sepolia.g.alchemy.com/v2/GvF-hcr7gTVjdoCbALH8WzMBjO5WysaQ", request_limit = 5, current_limit = 5 },
+
 ]
 
 [chains.base_sepolia]
 rpc_urls = [
     { url = "https://base-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 5, current_limit = 5 },
     { url = "https://base-sepolia.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc", request_limit = 5, current_limit = 5 },
+    { url = "https://base-sepolia.g.alchemy.com/v2/mRRENj5uQ1jqgfIIrtFZFzqUWQtU1lvH", request_limit = 5, current_limit = 5 },
+    { url = "https://base-sepolia.g.alchemy.com/v2/fjZ8CPTHtjIN989lInvYqljpGNqJTspg", request_limit = 5, current_limit = 5 },
+    { url = "https://base-sepolia.g.alchemy.com/v2/GvF-hcr7gTVjdoCbALH8WzMBjO5WysaQ", request_limit = 5, current_limit = 5 },
 ]
 
 [chains.arbitrum_sepolia]
 rpc_urls = [
     { url = "https://arb-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 5, current_limit = 5 },
     { url = "https://arb-sepolia.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc", request_limit = 5, current_limit = 5 },
+    { url = "https://arb-sepolia.g.alchemy.com/v2/mRRENj5uQ1jqgfIIrtFZFzqUWQtU1lvH", request_limit = 5, current_limit = 5 },
+    { url = "https://arb-sepolia.g.alchemy.com/v2/fjZ8CPTHtjIN989lInvYqljpGNqJTspg", request_limit = 5, current_limit = 5 },
+    { url = "https://arb-sepolia.g.alchemy.com/v2/GvF-hcr7gTVjdoCbALH8WzMBjO5WysaQ", request_limit = 5, current_limit = 5 },
+
+]
+
+[chains.berachain_sepolia]
+rpc_urls = [
+    { url = "https://berachain-bartio.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 5, current_limit = 5 },
+    { url = "https://berachain-bartio.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc", request_limit = 5, current_limit = 5 },
+    { url = "https://berachain-bartio.g.alchemy.com/v2/mRRENj5uQ1jqgfIIrtFZFzqUWQtU1lvH", request_limit = 5, current_limit = 5 },
+    { url = "https://berachain-bartio.g.alchemy.com/v2/fjZ8CPTHtjIN989lInvYqljpGNqJTspg", request_limit = 5, current_limit = 5 },
+    { url = "https://berachain-bartio.g.alchemy.com/v2/GvF-hcr7gTVjdoCbALH8WzMBjO5WysaQ", request_limit = 5, current_limit = 5 },
+
 ]

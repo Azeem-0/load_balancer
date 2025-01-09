@@ -274,55 +274,73 @@ mod tests {
         let request = create_test_request();
         let servers = vec![
             RpcServer {
-                url: "https://sepolia.d.org".to_string(),
+                url: "https://eth-sepolia.g.alchemy.com/v2/mRRENj5uQ1jqgfIIrtFZFzqUWQtU1lvH"
+                    .to_string(),
                 request_limit: 1,
                 current_limit: 1,
             },
             RpcServer {
-                url: "https://sepolia.drpc.org".to_string(),
-                request_limit: 1,
-                current_limit: 1,
-            },
-            RpcServer {
-                url: "https://endpoints.omniatech.io/v1/eth/sepolia/public".to_string(),
-                request_limit: 1,
-                current_limit: 1,
-            },
-        ];
-
-        let polygon = vec![
-            RpcServer {
-                url: "https://polygon-rpc.com".to_string(),
-                request_limit: 1,
-                current_limit: 1,
-            },
-            RpcServer {
-                url: "https://another-polygon-rpc.com".to_string(),
+                url: "https://eth-sepolia.g.alchemy.com/v2/fjZ8CPTHtjIN989lInvYqljpGNqJTspg"
+                    .to_string(),
                 request_limit: 1,
                 current_limit: 1,
             },
         ];
 
-        let fantom = vec![
+        let arb = vec![
             RpcServer {
-                url: "https://rpc.ftm.tools".to_string(),
+                url: "https://arb-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N"
+                    .to_string(),
                 request_limit: 1,
                 current_limit: 1,
             },
             RpcServer {
-                url: "https://another-fantom-rpc.com".to_string(),
+                url: "https://arb-sepolia.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc"
+                    .to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+        ];
+
+        let base = vec![
+            RpcServer {
+                url: "https://base-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N"
+                    .to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+            RpcServer {
+                url: "https://base-sepolia.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc"
+                    .to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+        ];
+
+        let berachain = vec![
+            RpcServer {
+                url: "https://berachain-bartio.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N"
+                    .to_string(),
+                request_limit: 1,
+                current_limit: 1,
+            },
+            RpcServer {
+                url: "https://berachain-bartio.g.alchemy.com/v2/mRRENj5uQ1jqgfIIrtFZFzqUWQtU1lvH"
+                    .to_string(),
                 request_limit: 1,
                 current_limit: 1,
             },
         ];
 
         let sepolia_servers = Arc::new(Mutex::new(RoundRobin::new(servers)));
-        let polygon_servers = Arc::new(Mutex::new(RoundRobin::new(polygon)));
-        let fantom_servers = Arc::new(Mutex::new(RoundRobin::new(fantom)));
+        let arb_servers = Arc::new(Mutex::new(RoundRobin::new(arb)));
+        let base_servers = Arc::new(Mutex::new(RoundRobin::new(base)));
+        let berachain_servers = Arc::new(Mutex::new(RoundRobin::new(berachain)));
         let mut chains: HashMap<String, Arc<Mutex<RoundRobin>>> = HashMap::new();
-        chains.insert("sepolia".to_string(), sepolia_servers);
-        chains.insert("polygon".to_string(), polygon_servers);
-        chains.insert("fantom".to_string(), fantom_servers);
+        chains.insert("ethereum_sepolia".to_string(), sepolia_servers);
+        chains.insert("arbitrum_sepolia".to_string(), arb_servers);
+        chains.insert("base_sepolia".to_string(), base_servers);
+        chains.insert("berachain_sepolia".to_string(), berachain_servers);
         let fin_chains = Arc::new(chains);
         let lbs = LoadBalancer {
             load_balancers: fin_chains,
@@ -344,23 +362,35 @@ mod tests {
             }
         }
 
-        let path: Path<String> = Path("sepolia".to_string());
-        let response = load_balancer(path, State(Arc::new(lbs)), request)
+        let path: Path<String> = Path("ethereum_sepolia".to_string());
+        let response = load_balancer(path, State(Arc::new(lbs.clone())), request)
             .await
             .unwrap();
         println!("{}", response.status());
         assert_eq!(response.status(), StatusCode::OK);
 
-        // let req2 = create_test_request();
-        // let path: Path<String> = Path("polygon".to_string());
-        // let response = load_balancer(path, State(lbs.clone()), req2).await.unwrap();
-        // println!("{}", response.status());
-        // assert_eq!(response.status(), StatusCode::OK);
+        let req2 = create_test_request();
+        let path: Path<String> = Path("base_sepolia".to_string());
+        let response = load_balancer(path, State(Arc::new(lbs.clone())), req2)
+            .await
+            .unwrap();
+        println!("{}", response.status());
+        assert_eq!(response.status(), StatusCode::OK);
 
-        // let req3 = create_test_request();
-        // let path: Path<String> = Path("fantom".to_string());
-        // let response = load_balancer(path, State(lbs), req3).await.unwrap();
-        // println!("{}", response.status());
-        // assert_eq!(response.status(), StatusCode::OK);
+        let req3 = create_test_request();
+        let path: Path<String> = Path("arbitrum_sepolia".to_string());
+        let response = load_balancer(path, State(Arc::new(lbs.clone())), req3)
+            .await
+            .unwrap();
+        println!("{}", response.status());
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let req4 = create_test_request();
+        let path: Path<String> = Path("berachain_sepolia".to_string());
+        let response = load_balancer(path, State(Arc::new(lbs.clone())), req4)
+            .await
+            .unwrap();
+        println!("{}", response.status());
+        assert_eq!(response.status(), StatusCode::OK);
     }
 }
