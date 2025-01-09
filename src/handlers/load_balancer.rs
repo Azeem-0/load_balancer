@@ -371,7 +371,7 @@ mod tests {
                 }
 
                 tokio::spawn(async move {
-                    rr_clone.refill_limits(Duration::from_secs(10)).await;
+                    rr_clone.refill_limits(Duration::from_secs(5)).await;
                 });
             }
         }
