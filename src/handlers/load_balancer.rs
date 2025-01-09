@@ -255,12 +255,12 @@ mod tests {
 
         let mock_round_robin = Arc::new(Mutex::new(RoundRobin::new(servers)));
         let mut chains: HashMap<String, Arc<Mutex<RoundRobin>>> = HashMap::new();
-        chains.insert("sepolia".to_string(), mock_round_robin);
+        chains.insert("ethereum_sepolia".to_string(), mock_round_robin);
         let fin_chains = Arc::new(chains);
         let lbs = LoadBalancer {
             load_balancers: fin_chains,
         };
-        let path: Path<String> = Path("sepolia".to_string());
+        let path: Path<String> = Path("ethereum_sepolia".to_string());
         println!("before resp");
         let response = load_balancer(path, State(Arc::new(lbs)), request)
             .await
@@ -332,15 +332,29 @@ mod tests {
             },
         ];
 
+        let bitcoin = vec![
+            RpcServer{
+                url : "https://rpc.ankr.com/btc_signet/2a8161e0d7bc03b1d7198e539c94b34481ad94443090a041314aedc2b29ea17b".to_string(),
+                request_limit : 5,
+                current_limit : 5
+            },
+            RpcServer{
+                url : "https://rpc.ankr.com/btc_signet/bc0fb296415993c1eccfc983e9b8f4881272efa66f8f92fa916ea053b2bb768c".to_string(),
+                request_limit : 5,
+                current_limit : 5 },
+        ];
+
         let sepolia_servers = Arc::new(Mutex::new(RoundRobin::new(servers)));
         let arb_servers = Arc::new(Mutex::new(RoundRobin::new(arb)));
         let base_servers = Arc::new(Mutex::new(RoundRobin::new(base)));
         let berachain_servers = Arc::new(Mutex::new(RoundRobin::new(berachain)));
+        let bitcoin_servers = Arc::new(Mutex::new(RoundRobin::new(bitcoin)));
         let mut chains: HashMap<String, Arc<Mutex<RoundRobin>>> = HashMap::new();
         chains.insert("ethereum_sepolia".to_string(), sepolia_servers);
         chains.insert("arbitrum_sepolia".to_string(), arb_servers);
         chains.insert("base_sepolia".to_string(), base_servers);
-        chains.insert("berachain_sepolia".to_string(), berachain_servers);
+        chains.insert("berachain".to_string(), berachain_servers);
+        chains.insert("bitcoin".to_string(), bitcoin_servers);
         let fin_chains = Arc::new(chains);
         let lbs = LoadBalancer {
             load_balancers: fin_chains,
@@ -386,8 +400,16 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let req4 = create_test_request();
-        let path: Path<String> = Path("berachain_sepolia".to_string());
+        let path: Path<String> = Path("berachain".to_string());
         let response = load_balancer(path, State(Arc::new(lbs.clone())), req4)
+            .await
+            .unwrap();
+        println!("{}", response.status());
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let req5 = create_test_request();
+        let path: Path<String> = Path("bitcoin".to_string());
+        let response = load_balancer(path, State(Arc::new(lbs.clone())), req5)
             .await
             .unwrap();
         println!("{}", response.status());
