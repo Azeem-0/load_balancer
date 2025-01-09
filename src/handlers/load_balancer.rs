@@ -31,7 +31,7 @@ pub async fn load_balancer(
 
     let max_size = 1024 * 1024;
 
-    let method = request.method().clone();
+    let method = Arc::new(request.method().clone());
 
     let body_bytes = {
         let body = request.into_body();
@@ -43,11 +43,10 @@ pub async fn load_balancer(
                 .body(Body::from("Failed to read request body"))
                 .unwrap());
         }
-        body_bytes.unwrap_or_default()
+        Arc::new(body_bytes.unwrap_or_default())
     };
 
-    let forwarded_request =
-        retry_with_backoff(3, method.clone(), body_bytes.clone(), round_robin).await;
+    let forwarded_request = retry_with_backoff(method, body_bytes, round_robin).await;
 
     match forwarded_request {
         Some(response) => {
@@ -71,13 +70,19 @@ pub async fn load_balancer(
 }
 
 async fn retry_with_backoff(
-    max_retries: u32,
-    method: Method,
-    body_bytes: Bytes,
+    method: Arc<Method>,
+    body_bytes: Arc<Bytes>,
     state: Arc<Mutex<RoundRobin>>,
 ) -> Option<ReqwestResponse> {
-    let mut retries = 0;
+    let mut retries: u32 = 0;
     let base_delay = Duration::from_millis(100);
+
+    let max_retries;
+
+    {
+        let rr = state.lock().unwrap();
+        max_retries = rr.urls.len() as u32;
+    }
 
     while retries < max_retries {
         let result = get_forward_request(state.clone(), method.clone(), body_bytes.clone()).await;
@@ -108,8 +113,8 @@ async fn retry_with_backoff(
 
 async fn get_forward_request(
     state: Arc<Mutex<RoundRobin>>,
-    method: Method,
-    body_bytes: Bytes,
+    method: Arc<Method>,
+    body_bytes: Arc<Bytes>,
 ) -> Option<RequestBuilder> {
     let uri;
 
@@ -123,10 +128,10 @@ async fn get_forward_request(
 
         let client = reqwest::Client::new();
 
-        let mut forwarded_request = client.request(method, &uri);
+        let mut forwarded_request = client.request((*method).clone(), &uri);
 
         forwarded_request = forwarded_request.header("Content-Type", "application/json");
-        forwarded_request = forwarded_request.body(body_bytes);
+        forwarded_request = forwarded_request.body((*body_bytes).clone());
         return Some(forwarded_request);
     } else {
         None
