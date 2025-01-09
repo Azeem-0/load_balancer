@@ -3,13 +3,14 @@ mod handlers;
 
 use std::{
     collections::HashMap,
-    fs,
+    env, fs,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
 use algorithms::round_robin::{Config, LoadBalancer, RoundRobin};
 use axum::{routing::any, Router};
+use dotenv::dotenv;
 use handlers::load_balancer::load_balancer;
 
 pub async fn initialize_load_balancer(config: Config) -> Arc<LoadBalancer> {
@@ -42,7 +43,7 @@ async fn main() {
         }
 
         tokio::spawn(async move {
-            rr_clone.refill_limits(Duration::from_secs(10)).await;
+            rr_clone.refill_limits(Duration::from_secs(5)).await;
         });
     }
 
@@ -50,6 +51,15 @@ async fn main() {
         .route("/{*path}", any(load_balancer))
         .with_state(lb);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    dotenv().ok();
+
+    let port = env::var("PORT").unwrap_or(format!("8080"));
+
+    let binding_address = format!("0.0.0.0:{}", port);
+
+    let listener = tokio::net::TcpListener::bind(binding_address)
+        .await
+        .unwrap();
+
     axum::serve(listener, app).await.unwrap();
 }
