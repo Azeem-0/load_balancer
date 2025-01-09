@@ -63,7 +63,7 @@ pub async fn load_balancer(
             return Ok(Response::builder()
                 .status(StatusCode::SERVICE_UNAVAILABLE)
                 .header("Content-Type", "application/json")
-                .body(Body::from("No Avaialble RPC Urls"))
+                .body(Body::from("Service temporarily unavailable. This may be due to no available RPC endpoints, invalid request format, or missing method specification."))
                 .unwrap());
         }
     }
@@ -89,7 +89,7 @@ async fn retry_with_backoff(
 
         if let Some(request) = result {
             if let Ok(res) = request.send().await {
-                if res.status().is_success() {
+                if res.status() != 404 {
                     return Some(res);
                 }
             }
