@@ -89,7 +89,7 @@ async fn retry_with_backoff(
 
         if let Some(request) = result {
             if let Ok(res) = request.send().await {
-                if res.status() != 404 {
+                if res.status() != 404 || res.status() != 401 {
                     return Some(res);
                 }
             }
