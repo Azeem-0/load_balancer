@@ -38,3 +38,9 @@ rpc_urls = [
     { url = "https://berachain-bartio.g.alchemy.com/v2/GvF-hcr7gTVjdoCbALH8WzMBjO5WysaQ", request_limit = 5, current_limit = 5 },
 
 ]
+
+[chains.bitcoin]
+rpc_urls = [
+    { url = "https://rpc.ankr.com/btc_signet/2a8161e0d7bc03b1d7198e539c94b34481ad94443090a041314aedc2b29ea17b", request_limit = 5, current_limit = 5 },
+    { url = "https://rpc.ankr.com/btc_signet/bc0fb296415993c1eccfc983e9b8f4881272efa66f8f92fa916ea053b2bb768c", request_limit = 5, current_limit = 5 },
+]
