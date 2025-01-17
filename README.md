@@ -13,3 +13,4 @@ currently 1 Request per second.
       3. arbitrum_sepolia
       4. berachain
       5. bitcoin
+      6. monad_testnet
