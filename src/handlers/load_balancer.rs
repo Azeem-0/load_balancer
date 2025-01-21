@@ -12,6 +12,25 @@ use axum::{
 };
 use reqwest::{Method, RequestBuilder, Response as ReqwestResponse, StatusCode};
 
+#[derive(Debug, PartialEq)]
+enum RpcErrorStatus {
+    NotFound = 404,
+    Unauthorized = 401,
+    RateLimited = 429,
+    // Add more status codes as needed
+}
+
+impl RpcErrorStatus {
+    fn contains(status: StatusCode) -> bool {
+        use RpcErrorStatus::*;
+        matches!(status.as_u16(),
+            code if code == NotFound as u16 ||
+            code == Unauthorized as u16 ||
+            code == RateLimited as u16
+        )
+    }
+}
+
 pub async fn load_balancer(
     Path(chain): Path<String>,
     State(state): State<Arc<LoadBalancer>>,
@@ -89,7 +108,7 @@ async fn retry_with_backoff(
 
         if let Some(request) = result {
             if let Ok(res) = request.send().await {
-                if res.status() != 404 || res.status() != 401 {
+                if !RpcErrorStatus::contains(res.status()) {
                     return Some(res);
                 }
             }
