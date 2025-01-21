@@ -48,5 +48,58 @@ rpc_urls = [
 [chains.monad_testnet]
 rpc_urls = [
     { url = "https://rpc.monad-testnet.category.xyz/rpc/SPa4TbSgMJxz5ywmzYvvc9O5nkAVGTgOcsi7yErG", request_limit = 200, current_limit = 200 },
-  
+]
+
+
+[chains.base]
+rpc_urls = [
+    { url = "https://base.llamarpc.com", request_limit = 5, current_limit = 5 },
+    { url = "https://base.meowrpc.com", request_limit = 5, current_limit = 5 },
+    { url = "https://base-pokt.nodies.app", request_limit = 5, current_limit = 5 },
+    { url = "https://1rpc.io/base", request_limit = 5, current_limit = 5 },
+    { url = "https://endpoints.omniatech.io/v1/base/mainnet/public", request_limit = 5, current_limit = 5 },
+    { url = "https://base-rpc.publicnode.com", request_limit = 5, current_limit = 5 },
+    { url = "https://mainnet.base.org", request_limit = 5, current_limit = 5 },
+    { url = "https://developer-access-mainnet.base.org", request_limit = 5, current_limit = 5 },
+    { url = "https://1rpc.io/base", request_limit = 5, current_limit = 5 },
+]
+
+[chains.arbitrum]
+rpc_urls = [
+    { url = "https://endpoints.omniatech.io/v1/arbitrum/one/public", request_limit = 5, current_limit = 5 },
+    { url = "https://arbitrum.meowrpc.com", request_limit = 5, current_limit = 5 },
+    { url = "https://arbitrum.llamarpc.com", request_limit = 5, current_limit = 5 },
+    { url = "https://arb-pokt.nodies.app", request_limit = 5, current_limit = 5 },
+    { url = "https://1rpc.io/arb", request_limit = 5, current_limit = 5 },
+    { url = "https://arb-mainnet.g.alchemy.com/v2/demo", request_limit = 5, current_limit = 5 },
+    { url = "https://rpc.ankr.com/arbitrum", request_limit = 5, current_limit = 5 },
+    { url = "https://arb1.arbitrum.io/rpc", request_limit = 5, current_limit = 5 },
+    { url = "https://arbitrum-one.public.blastapi.io", request_limit = 5, current_limit = 5 },
+    { url = "https://arbitrum.blockpi.network/v1/rpc/public", request_limit = 5, current_limit = 5 },
+    { url = "https://arb1.croswap.com/rpc", request_limit = 5, current_limit = 5 },
+    { url = "https://endpoints.omniatech.io/v1/arbitrum/one/public", request_limit = 5, current_limit = 5 },
+    { url = "https://arbitrum.api.onfinality.io/public", request_limit = 5, current_limit = 5 },
+    { url = "https://arb-mainnet-public.unifra.io", request_limit = 5, current_limit = 5 },
+]
+
+
+[chains.ethereum]
+rpc_urls = [
+    { url = "https://1rpc.io/eth", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-mainnet.g.alchemy.com/v2/demo", request_limit = 5, current_limit = 5 },
+    { url = "https://rpc.ankr.com/eth", request_limit = 5, current_limit = 5 },
+    { url = "https://ethereum.blockpi.network/v1/rpc/public", request_limit = 5, current_limit = 5 },
+    { url = "https://eth-mainnet.public.blastapi.io", request_limit = 5, current_limit = 5 },
+    { url = "https://uk.rpc.blxrbdn.com", request_limit = 5, current_limit = 5 },
+    { url = "https://eth.rpc.blxrbdn.com", request_limit = 5, current_limit = 5 },
+    { url = "https://virginia.rpc.blxrbdn.com", request_limit = 5, current_limit = 5 },
+    { url = "https://singapore.rpc.blxrbdn.com", request_limit = 5, current_limit = 5 },
+    { url = "https://rpc.builder0x69.io", request_limit = 5, current_limit = 5 },
+    { url = "https://cloudflare-eth.com", request_limit = 5, current_limit = 5 },
+    { url = "https://rpc.flashbots.net", request_limit = 5, current_limit = 5 },
+    { url = "https://ethereumnodelight.app.runonflux.io", request_limit = 5, current_limit = 5 },
+    { url = "https://core.gashawk.io/rpc", request_limit = 5, current_limit = 5 },
+    { url = "https://main-light.eth.linkpool.io", request_limit = 5, current_limit = 5 },
+    { url = "https://eth.llamarpc.com", request_limit = 5, current_limit = 5 },
+    { url = "https://rpc.mevblocker.io", request_limit = 5, current_limit = 5 },
 ]

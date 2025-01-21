@@ -28,10 +28,12 @@ impl RoundRobin {
         let len = self.urls.len();
         for _ in 0..len {
             let i = self.index.load(Ordering::Relaxed) % self.urls.len();
-            let mut server = self.urls[i].lock().unwrap();
-            if server.current_limit > 0 {
-                server.current_limit -= 1;
-                return Some(server.url.clone());
+            {
+                let mut server = self.urls[i].lock().unwrap();
+                if server.current_limit > 0 {
+                    server.current_limit -= 1;
+                    return Some(server.url.clone());
+                }
             }
             self.index.store((i + 1) % len, Ordering::Relaxed);
         }
