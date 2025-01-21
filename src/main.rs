@@ -9,7 +9,11 @@ use std::{
 };
 
 use algorithms::round_robin::{Config, LoadBalancer, RoundRobin};
-use axum::{routing::any, Router};
+use axum::{
+    response::IntoResponse,
+    routing::{any, get},
+    Router,
+};
 use dotenv::dotenv;
 use handlers::load_balancer::load_balancer;
 
@@ -23,6 +27,10 @@ pub async fn initialize_load_balancer(config: Config) -> Arc<LoadBalancer> {
     Arc::new(LoadBalancer {
         load_balancers: Arc::new(lb_map),
     })
+}
+
+async fn home() -> impl IntoResponse {
+    "Welcome to the RPC Load Balancer! Server is up and running."
 }
 
 #[tokio::main]
@@ -48,6 +56,7 @@ async fn main() {
     }
 
     let app = Router::new()
+        .route("/", get(home))
         .route("/{*path}", any(load_balancer))
         .with_state(lb);
 
