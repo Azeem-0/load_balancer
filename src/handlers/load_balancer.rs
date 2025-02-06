@@ -16,8 +16,14 @@ use reqwest::{Method, RequestBuilder, Response as ReqwestResponse, StatusCode};
 enum RpcErrorStatus {
     NotFound = 404,
     Unauthorized = 401,
-    RateLimited = 429,
-    // Add more status codes as needed
+    Forbidden = 403,
+    InternalServerError = 500,
+    ServiceUnavailable = 503,
+    BadRequest = 400,
+    Conflict = 409,
+    TooManyRequests = 429,
+    GatewayTimeout = 504,
+    NotImplemented = 501,
 }
 
 impl RpcErrorStatus {
@@ -26,7 +32,14 @@ impl RpcErrorStatus {
         matches!(status.as_u16(),
             code if code == NotFound as u16 ||
             code == Unauthorized as u16 ||
-            code == RateLimited as u16
+            code == Forbidden as u16 ||
+            code == InternalServerError as u16 ||
+            code == ServiceUnavailable as u16 ||
+            code == BadRequest as u16 ||
+            code == Conflict as u16 ||
+            code == TooManyRequests as u16 ||
+            code == GatewayTimeout as u16 ||
+            code == NotImplemented as u16
         )
     }
 }

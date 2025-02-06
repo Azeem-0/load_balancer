@@ -2,12 +2,14 @@
 
 [chains.ethereum_sepolia]
 rpc_urls = [
-    { url = "https://eth-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 20, current_limit = 20 },
     { url = "https://eth-sepolia.g.alchemy.com/v2/Vt-glQ2N0u8FIs-f0try1ghd7DAdYobc", request_limit = 20, current_limit = 20 },
+    { url = "https://eth-sepolia.g.alchemy.com/v2/DumcaFO69U55TqhPevuTScTlDzxhvy0N", request_limit = 20, current_limit = 20 },
+    { url = "https://1rpc.io/sepolia", request_limit = 20, current_limit = 20 },
+    { url = "https://endpoints.omniatech.io/v1/eth/sepolia/public", request_limit = 20, current_limit = 20 },
+    { url = "https://ethereum-sepolia-rpc.publicnode.com", request_limit = 20, current_limit = 20 },
     { url = "https://eth-sepolia.g.alchemy.com/v2/mRRENj5uQ1jqgfIIrtFZFzqUWQtU1lvH", request_limit = 20, current_limit = 20 },
     { url = "https://eth-sepolia.g.alchemy.com/v2/fjZ8CPTHtjIN989lInvYqljpGNqJTspg", request_limit = 20, current_limit = 20 },
     { url = "https://eth-sepolia.g.alchemy.com/v2/GvF-hcr7gTVjdoCbALH8WzMBjO5WysaQ", request_limit = 20, current_limit = 20 },
-
 ]
 
 [chains.base_sepolia]
